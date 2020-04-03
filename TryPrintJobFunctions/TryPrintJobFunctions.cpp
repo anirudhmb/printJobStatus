@@ -1,21 +1,54 @@
 // TryPrintJobFunctions.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include "pch.h"
 #include <iostream>
+#include <windows.h>
+
+using namespace std;
 
 int main()
 {
-    std::cout << "Hello World!\n"; 
+	wchar_t szBuffer[] = L"  ";
+	DWORD cchBuffer;
+	LPTSTR pszBuffer = szBuffer;
+	LPDWORD pcchBuffer = &cchBuffer;
+	cout << "hello"<< endl;
+	GetDefaultPrinter(pszBuffer, pcchBuffer);
+	wcout << "pszBuf " << pszBuffer << endl;
+	wcout << "pcchBuf " << *pcchBuffer << endl;
+	wcout << "szBuf " << szBuffer << endl;
+
+	DWORD dwNeeded, dwReturned;
+	PRINTER_INFO_4* pinfo4;
+	int test = EnumPrinters(PRINTER_ENUM_NAME, NULL, 4, NULL, 0, &dwNeeded, &dwReturned);
+	cout << test << endl;
+	cout << dwNeeded << endl;
+	pinfo4 = (PRINTER_INFO_4*)malloc(dwNeeded);
+	test = EnumPrinters(PRINTER_ENUM_NAME, NULL, 4, (PBYTE)pinfo4, dwNeeded, &dwNeeded, &dwReturned);
+
+	HDC hdc;
+
+	for (DWORD i = 0; i < (dwNeeded / sizeof(PRINTER_INFO_4)); i++, pinfo4++) {
+		wcout << pinfo4->pPrinterName << endl;
+		LPWSTR printerName = pinfo4->pPrinterName;
+		//if (wcscmp(printerName, L"Microsoft Print to PDF")==0) {
+			hdc = CreateDC(NULL, printerName, NULL, NULL);
+
+			HANDLE hPrinter;
+			DWORD pJobCbNeeded, pJobCbReturned;
+			JOB_INFO_1* pJob;
+
+			OpenPrinter(printerName, &hPrinter, NULL);
+			EnumJobs(hPrinter, 0, 10, 1, NULL, 0, &pJobCbNeeded, &pJobCbReturned);
+			pJob = (JOB_INFO_1*)malloc(pJobCbNeeded);
+			EnumJobs(hPrinter, 0, 10, 1, (PBYTE)pJob, pJobCbNeeded, &pJobCbNeeded, &pJobCbReturned);
+			for (DWORD j = 0; j < pJobCbReturned; j++, pJob++) {
+				wcout << "jobid " << pJob->JobId << endl;
+				wcout << "jobdoc " << pJob->pDocument << endl;
+				cout << "======================" << endl;
+			}
+			ClosePrinter(printerName);
+		//}
+	}
+	return 1;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
